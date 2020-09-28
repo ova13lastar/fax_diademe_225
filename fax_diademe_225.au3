@@ -10,8 +10,8 @@
 ; AutoIt3Wrapper
 #AutoIt3Wrapper_Res_ProductName=fax_diademe_225
 #AutoIt3Wrapper_Res_Description=Permet d'installer l'imprimante virtuelle PDFCreator : fax_diademe_225
-#AutoIt3Wrapper_Res_ProductVersion=1.0.1
-#AutoIt3Wrapper_Res_FileVersion=1.0.1
+#AutoIt3Wrapper_Res_ProductVersion=1.0.4
+#AutoIt3Wrapper_Res_FileVersion=1.0.4
 #AutoIt3Wrapper_Res_CompanyName=CNAMTS/CPAM_ARTOIS/APPLINAT
 #AutoIt3Wrapper_Res_LegalCopyright=yann.daniel@assurance-maladie.fr
 #AutoIt3Wrapper_Res_Language=1036
@@ -86,6 +86,8 @@ Global $g_sLoggerUserName = _YDTool_GetHostLoggedUserName(@ComputerName)
 _YDLogger_Var("$g_sLoggerUserName", $g_sLoggerUserName)
 Global $g_sOldPdfCreatorPrinter = "FAX DIADEME 225"
 _YDLogger_Var("$g_sOldPdfCreatorPrinter", $g_sOldPdfCreatorPrinter)
+Global $g_sOSArchitecture = (@OSVersion = "WIN_7") ? "X86" : "X64"
+_YDLogger_Var("$g_sOSArchitecture", $g_sOSArchitecture)
 ;------------------------------
 _Main()
 ; #MAIN SCRIPT# =================================================================================================================
@@ -102,15 +104,15 @@ _Main()
 Func _Main()
 	Local $sFuncName = "_Main"
 	;------------------------------
-	; On supprime l'ancienne imprimante PDFCreator si installee prcédemment
+	; On supprime l'ancienne imprimante PDFCreator si installee precedemment
 	If _DeleteOldPdfCreatorPrinterIfInstalled($g_sOldPdfCreatorPrinter) Then
-		_YDLogger_Log("Suppression ancienne imprimante " & $g_sOldPdfCreatorPrinter, $sFuncName)		
+		_YDLogger_Log("Suppression ancienne imprimante " & $g_sOldPdfCreatorPrinter, $sFuncName)
 	Else
 		_YDLogger_Log("Ancienne imprimante " & $g_sOldPdfCreatorPrinter & " non trouvee", $sFuncName)
 	EndIf
 	;------------------------------
 	; On installe l'imprimante PDFCreator
-	If Not _IsPdfCreatorPrinterInstalled($g_sPdfCreatorPrinter) And $g_sLoggerUserName <> "" Then 
+	If Not _IsPdfCreatorPrinterInstalled($g_sPdfCreatorPrinter) And $g_sLoggerUserName <> "" Then
 		_YDLogger_Log("Imprimante " & $g_sPdfCreatorPrinter & " non installee !", $sFuncName)
 		_InstallPdfCreatorPrinter()
 	Else
@@ -121,7 +123,7 @@ Func _Main()
 	EndIf
 	;------------------------------
 	; On verifie que l'imprimante PDFCreator s'est correctement installee
-	If _IsPdfCreatorPrinterInstalled($g_sPdfCreatorPrinter) Then 
+	If _IsPdfCreatorPrinterInstalled($g_sPdfCreatorPrinter) Then
 		_YDLogger_Log("Imprimante " & $g_sPdfCreatorPrinter & " installee pour utilisateur : " & $g_sLoggerUserName, $sFuncName)
 	Else
 		_YDLogger_Error("Imprimante " & $g_sPdfCreatorPrinter & " non installee malgre la tentative d'installation !", $sFuncName)
@@ -162,7 +164,7 @@ Func _DeleteOldPdfCreatorPrinterIfInstalled($_sPrinterVal)
 			_YDLogger_Log("Suppression OK de la cle [" & $sRegKeyVal & "]", $sFuncName)
 		Else
 			_YDLogger_Log("Suppression de la cle [" & $sRegKeyVal & "] impossible", $sFuncName)
-		EndIf		
+		EndIf
 		Return True
 	Else
 		_YDLogger_Log("Valeur [" & $_sPrinterVal & "] introuvable dans la cle [" & $sRegKeyVal & "] !", $sFuncName, 2)
@@ -197,17 +199,18 @@ EndFunc
 ; #FUNCTION# ====================================================================================================================
 ; Description ...: Permet d'installer l'imprimante g_sPdfCreatorPrinter
 ; Syntax.........: _InstallPdfCreatorPrinter()
-; Parameters ....: 
+; Parameters ....:
 ; Return values .: Success      - True
 ;                  Failure      - False
 ; Author ........: yann.daniel@assurance-maladie.fr
-; Last Modified .: 12/07/2019
+; Last Modified .: 28/09/2020
 ; Notes .........:
 ;================================================================================================================================
 Func _InstallPdfCreatorPrinter()
 	Local $sFuncName = "_InstallPdfCreatorPrinter"
 	Local $iRegError
 	Local $sRegName
+	Local $sProgramFiles
 	;---------------------------------------
 	$sRegName = 'HKCU_add_printer'
 	$iRegError = 0
@@ -218,12 +221,14 @@ Func _InstallPdfCreatorPrinter()
 		_YDLogger_Error("Inscriptions registre " & $sRegName & " : NOK !", $sFuncName)
 	EndIf
 	;---------------------------------------
+	$sProgramFiles = ($g_sOSArchitecture = "X64") ? "Program Files (x86)" : "Program Files"
+	;---------------------------------------
 	$sRegName = 'HKCU_add_profile'
 	$iRegError = 0
-	Local $sRegData = 'Microsoft Word - |\.docx|\.doc|\Microsoft Excel - |\.xlsx|\.xls|\Microsoft PowerPoint - |\.pptx|\.ppt|'	
-	If RegWrite('HKCU\Software\PDFCreator\Profiles\' & $g_sPdfCreatorPrinter & '\Ghostscript', 'DirectoryGhostscriptBinaries','REG_SZ','C:\Program Files\PDFCreator\GS9.05\gs9.05\Bin\') <> 1 Then $iRegError += 1
+	Local $sRegData = 'Microsoft Word - |\.docx|\.doc|\Microsoft Excel - |\.xlsx|\.xls|\Microsoft PowerPoint - |\.pptx|\.ppt|'
+	If RegWrite('HKCU\Software\PDFCreator\Profiles\' & $g_sPdfCreatorPrinter & '\Ghostscript', 'DirectoryGhostscriptBinaries','REG_SZ','C:\' & $sProgramFiles & '\PDFCreator\GS9.05\gs9.05\Bin\') <> 1 Then $iRegError += 1
 	If RegWrite('HKCU\Software\PDFCreator\Profiles\' & $g_sPdfCreatorPrinter & '\Ghostscript', 'DirectoryGhostscriptFonts','REG_SZ','') <> 1 Then $iRegError += 1
-	If RegWrite('HKCU\Software\PDFCreator\Profiles\' & $g_sPdfCreatorPrinter & '\Ghostscript', 'DirectoryGhostscriptLibraries','REG_SZ','C:\Program Files\PDFCreator\GS9.05\gs9.05\Lib\') <> 1 Then $iRegError += 1
+	If RegWrite('HKCU\Software\PDFCreator\Profiles\' & $g_sPdfCreatorPrinter & '\Ghostscript', 'DirectoryGhostscriptLibraries','REG_SZ','C:\' & $sProgramFiles & '\PDFCreator\GS9.05\gs9.05\Lib\') <> 1 Then $iRegError += 1
 	If RegWrite('HKCU\Software\PDFCreator\Profiles\' & $g_sPdfCreatorPrinter & '\Ghostscript', 'DirectoryGhostscriptResource','REG_SZ','') <> 1 Then $iRegError += 1
 	If RegWrite('HKCU\Software\PDFCreator\Profiles\' & $g_sPdfCreatorPrinter & '\Printing', 'Counter','REG_SZ','177') <> 1 Then $iRegError += 1
 	If RegWrite('HKCU\Software\PDFCreator\Profiles\' & $g_sPdfCreatorPrinter & '\Printing', 'DeviceHeightPoints','REG_SZ','842') <> 1 Then $iRegError += 1
@@ -413,6 +418,3 @@ Func _InstallPdfCreatorPrinter()
 		_YDLogger_Error("Inscriptions registre " & $sRegName & " : NOK !", $sFuncName)
 	EndIf
 EndFunc
-
-
-
